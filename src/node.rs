@@ -1,4 +1,4 @@
-use crate::{Frame, Sample};
+use crate::{Frame, Sample, Connection};
 
 /// Types to be used as a **Node** within the DSP **Graph**.
 pub trait Node<F>
@@ -11,7 +11,7 @@ where
     ///
     /// Any source/generator type nodes should simply render straight to the buffer.
     /// Any effects/processor type nodes should mutate the buffer directly.
-    fn audio_requested(&mut self, buffer: &mut [F], sample_hz: f64);
+    fn audio_requested(&mut self, buffer: &mut [F], sample_hz: f64, input_connections: Vec<&Vec<F>>);
 
     /// Following the call to the `Node`'s `audio_requested` method, the `Graph` will sum together
     /// some of the original (dry) signal with some of the processed (wet) signal.
@@ -53,8 +53,8 @@ where
     F: Frame,
 {
     #[inline]
-    fn audio_requested(&mut self, buffer: &mut [F], sample_hz: f64) {
-        (**self).audio_requested(buffer, sample_hz);
+    fn audio_requested(&mut self, buffer: &mut [F], sample_hz: f64, input_connections: Vec<&Vec<F>>) {
+        (**self).audio_requested(buffer, sample_hz, input_connections);
     }
     #[inline]
     fn dry(&self) -> <F::Sample as Sample>::Float {

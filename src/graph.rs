@@ -566,8 +566,10 @@ where
 
             // Walk over each of the input connections to sum their buffers to the output.
             let mut inputs = self.inputs(node_idx);
+            let mut input_buffers = std::vec::Vec::new();
             while let Some(connection_idx) = inputs.next_edge(self) {
-                let connection = &self[connection_idx];
+                let connection = &mut self[connection_idx];
+                input_buffers.push(&connection.buffer);
                 // Sum the connection's buffer onto the output.
                 //
                 // We can be certain that `connection`'s buffer is the same size as the
@@ -598,7 +600,7 @@ where
 
                 // Render our `output` buffer with the current node.
                 // The `output` buffer is now representative of a fully wet signal.
-                node.audio_requested(output, sample_hz);
+                node.audio_requested(output, sample_hz, input_buffers);
 
                 let dry = node.dry();
                 let wet = node.wet();
@@ -673,12 +675,19 @@ impl<F, N> ::std::ops::Index<EdgeIndex> for Graph<F, N> {
     }
 }
 
+impl<F, N> ::std::ops::IndexMut<EdgeIndex> for Graph<F, N> {
+    #[inline]
+    fn index_mut<'a>(&mut self, index: EdgeIndex) -> &mut Connection<F> {
+        &mut self.dag[index]
+    }
+}
+
 impl<F, N> Node<F> for Graph<F, N>
 where
     F: Frame,
     N: Node<F>,
 {
-    fn audio_requested(&mut self, output: &mut [F], sample_hz: f64) {
+    fn audio_requested(&mut self, output: &mut [F], sample_hz: f64, _input_connections: Vec<&Vec<F>>) {
         match self.maybe_master {
             Some(master) => self.audio_requested_from(master, output, sample_hz),
             None => {
